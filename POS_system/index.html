@@ -49,12 +49,29 @@
     .message.error   { background:#fdf0ee; border:1px solid var(--red);   color:var(--red);   display:block; }
     .footer { margin-top:20px; font-size:12px; color:var(--muted); text-align:center; }
     .footer a { color:var(--accent); text-decoration:none; font-weight:500; }
+    .lang-select { position:absolute; top:50%; right:24px; transform:translateY(-50%); padding:6px 10px; border:1px solid rgba(255,255,255,0.4); border-radius:6px; font-size:12px; font-family:'Outfit',sans-serif; background:rgba(255,255,255,0.2); color:white; cursor:pointer; }
+    .lang-select option { background:var(--ink); color:white; }
+    @media (max-width: 480px) {
+      body { padding:0 12px; padding-top:80px; padding-left:max(12px,env(safe-area-inset-left)); padding-right:max(12px,env(safe-area-inset-right)); padding-bottom:max(20px,env(safe-area-inset-bottom)); }
+      .wt-header { padding:10px 16px; padding-left:max(16px,env(safe-area-inset-left)); }
+      .wt-header img { height:44px; }
+      .card { width:100%; max-width:100%; padding:24px; margin-top:16px; }
+      .tabs { margin-bottom:20px; }
+      .tab { padding:12px; min-height:44px; font-size:14px; }
+      input { padding:14px; min-height:48px; font-size:16px; }
+      .btn-submit, .btn-guest { min-height:48px; padding:14px; font-size:16px; }
+      .lang-select { right:12px; min-height:40px; }
+    }
   </style>
 </head>
 <body>
 
-  <div class="wt-header">
+  <div class="wt-header" style="position:relative;">
     <img src="waketech-logo.png" alt="Wake Tech"/>
+    <select id="lang-select" class="lang-select" aria-label="Language">
+      <option value="en">English</option>
+      <option value="es">Español</option>
+    </select>
   </div>
 
   <div class="card">
@@ -65,46 +82,46 @@
     </div>
 
     <div class="tabs">
-      <button class="tab active" onclick="switchTab('login')">Sign In</button>
-      <button class="tab"        onclick="switchTab('register')">Sign Up</button>
+      <button class="tab active" onclick="switchTab('login')" data-i18n="index_sign_in">Sign In</button>
+      <button class="tab"        onclick="switchTab('register')" data-i18n="index_sign_up">Sign Up</button>
     </div>
 
     <!-- LOGIN -->
     <div class="panel active" id="loginPanel">
       <div class="message" id="loginMsg"></div>
       <div class="form-group">
-        <label>Email</label>
+        <label data-i18n="index_email">Email</label>
         <input type="email" id="loginEmail" placeholder="you@example.com"/>
       </div>
       <div class="form-group">
-        <label>Password</label>
+        <label data-i18n="index_password">Password</label>
         <input type="password" id="loginPassword" placeholder="Your password"/>
       </div>
-      <button class="btn-submit" onclick="handleLogin()">Sign In →</button>
-      <div class="divider">or</div>
-      <button class="btn-guest" onclick="continueAsGuest()">👤 Continue as Guest</button>
-      <p class="guest-note">No account needed — browse &amp; order instantly</p>
+      <button class="btn-submit" onclick="handleLogin()" data-i18n="index_sign_in_btn">Sign In →</button>
+      <div class="divider" data-i18n="index_or">or</div>
+      <button class="btn-guest" onclick="continueAsGuest()" data-i18n="index_continue_guest">👤 Continue as Guest</button>
+      <p class="guest-note" data-i18n="index_no_account">No account needed — browse &amp; order instantly</p>
     </div>
 
     <!-- REGISTER -->
     <div class="panel" id="registerPanel">
       <div class="message" id="registerMsg"></div>
       <div class="form-group">
-        <label>Full Name</label>
+        <label data-i18n="index_full_name">Full Name</label>
         <input type="text" id="registerName" placeholder="John Doe"/>
       </div>
       <div class="form-group">
-        <label>Email</label>
+        <label data-i18n="index_email">Email</label>
         <input type="email" id="registerEmail" placeholder="you@example.com"/>
       </div>
       <div class="form-group">
-        <label>Password</label>
+        <label data-i18n="index_password">Password</label>
         <input type="password" id="registerPassword" placeholder="Create a password"/>
       </div>
-      <button class="btn-submit" onclick="handleRegister()">Create Account →</button>
-      <div class="divider">or</div>
-      <button class="btn-guest" onclick="continueAsGuest()">👤 Continue as Guest</button>
-      <p class="guest-note">No account needed — browse &amp; order instantly</p>
+      <button class="btn-submit" onclick="handleRegister()" data-i18n="index_create_account">Create Account →</button>
+      <div class="divider" data-i18n="index_or">or</div>
+      <button class="btn-guest" onclick="continueAsGuest()" data-i18n="index_continue_guest">👤 Continue as Guest</button>
+      <p class="guest-note" data-i18n="index_no_account">No account needed — browse &amp; order instantly</p>
     </div>
   </div>
 
@@ -112,63 +129,7 @@
     © 2026 Wakedonalds · <a href="https://www.waketech.edu" target="_blank">waketech.edu</a>
   </div>
 
-<script>
-  const API = "http://localhost:8080/api/auth"
-
-  function switchTab(tab) {
-    document.querySelectorAll(".tab").forEach((t, i) => {
-      t.classList.toggle("active", (i===0&&tab==="login")||(i===1&&tab==="register"))
-    })
-    document.getElementById("loginPanel").classList.toggle("active", tab==="login")
-    document.getElementById("registerPanel").classList.toggle("active", tab==="register")
-  }
-
-  function showMsg(id, type, text) {
-    const el = document.getElementById(id)
-    el.className = "message " + type
-    el.textContent = text
-  }
-
-  // ✅ GUEST — saves guest user then redirects
-  function continueAsGuest() {
-    localStorage.setItem("wakedonald_user", JSON.stringify({
-      id: 0,
-      name: "Guest",
-      email: "guest@wakedonalds.com",
-      role: "guest"
-    }))
-    window.location.href = "restaurant-pos.html"
-  }
-
-  async function handleLogin() {
-    const email    = document.getElementById("loginEmail").value.trim()
-    const password = document.getElementById("loginPassword").value
-    if (!email || !password) return showMsg("loginMsg", "error", "Please fill in all fields.")
-    try {
-      const res  = await fetch(API + "/login", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password}) })
-      const data = await res.json()
-      if (res.ok) {
-        showMsg("loginMsg", "success", "Welcome back, " + data.user.name + "! 🍔")
-        localStorage.setItem("wakedonald_user", JSON.stringify(data.user))
-        setTimeout(() => { window.location.href = "restaurant-pos.html" }, 1000)
-      } else {
-        showMsg("loginMsg", "error", data.message)
-      }
-    } catch { showMsg("loginMsg", "error", "Cannot connect to server. Is it running?") }
-  }
-
-  async function handleRegister() {
-    const name     = document.getElementById("registerName").value.trim()
-    const email    = document.getElementById("registerEmail").value.trim()
-    const password = document.getElementById("registerPassword").value
-    if (!name||!email||!password) return showMsg("registerMsg","error","Please fill in all fields.")
-    try {
-      const res  = await fetch(API + "/register", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name,email,password}) })
-      const data = await res.json()
-      if (res.ok) showMsg("registerMsg","success", data.message + " You can now sign in!")
-      else showMsg("registerMsg","error", data.message)
-    } catch { showMsg("registerMsg","error","Cannot connect to server. Is it running?") }
-  }
-</script>
+<script src="js/i18n.js"></script>
+<script src="js/index.js"></script>
 </body>
 </html>

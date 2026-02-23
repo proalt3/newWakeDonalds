@@ -19,22 +19,59 @@ const DEFAULT_MENU = [
   { name: "Milkshake", cat: "Drinks", price: 6, description: "Vanilla, chocolate, or strawberry", emoji: "🥛", tag: "" },
 ]
 
+// Whether menu_items has description_es (null = not yet known)
+let schemaHasDescriptionEs = null
+
+async function queryMenuRows() {
+  const fullSql = "SELECT id, name, cat, price, description, description_es, emoji, tag, active FROM menu_items ORDER BY cat, name"
+  try {
+    const rows = await db.query(fullSql)
+    schemaHasDescriptionEs = true
+    return { rows: rows || [], hasDescriptionEs: true }
+  } catch (err) {
+    if (err.code === "ER_BAD_FIELD_ERROR" && err.sqlMessage && err.sqlMessage.includes("description_es")) {
+      schemaHasDescriptionEs = false
+      const rows = await db.query(
+        "SELECT id, name, cat, price, description, emoji, tag, active FROM menu_items ORDER BY cat, name"
+      )
+      return { rows: rows || [], hasDescriptionEs: false }
+    }
+    throw err
+  }
+}
+
+async function insertMenuItem(item) {
+  const hasCol = schemaHasDescriptionEs !== false
+  if (hasCol) {
+    try {
+      await db.query(
+        "INSERT INTO menu_items (name, cat, price, description, description_es, emoji, tag, active) VALUES (?, ?, ?, ?, ?, ?, ?, 1)",
+        [item.name, item.cat, item.price, item.description || "", item.description_es || null, item.emoji || "🍽️", item.tag || ""]
+      )
+      return
+    } catch (err) {
+      if (err.code === "ER_BAD_FIELD_ERROR" && err.sqlMessage && err.sqlMessage.includes("description_es")) {
+        schemaHasDescriptionEs = false
+      } else throw err
+    }
+  }
+  await db.query(
+    "INSERT INTO menu_items (name, cat, price, description, emoji, tag, active) VALUES (?, ?, ?, ?, ?, ?, 1)",
+    [item.name, item.cat, item.price, item.description || "", item.emoji || "🍽️", item.tag || ""]
+  )
+}
+
 // GET all menu items (active only by default; admin can pass ?all=1)
 router.get("/", async (req, res) => {
   try {
-    let rows = await db.query(
-      "SELECT id, name, cat, price, description, emoji, tag, active FROM menu_items ORDER BY cat, name"
-    )
+    let { rows, hasDescriptionEs } = await queryMenuRows()
     if (!rows || !rows.length) {
       for (const item of DEFAULT_MENU) {
-        await db.query(
-          "INSERT INTO menu_items (name, cat, price, description, emoji, tag, active) VALUES (?, ?, ?, ?, ?, ?, 1)",
-          [item.name, item.cat, item.price, item.description || "", item.emoji || "🍽️", item.tag || ""]
-        )
+        await insertMenuItem(item)
       }
-      rows = await db.query(
-        "SELECT id, name, cat, price, description, emoji, tag, active FROM menu_items ORDER BY cat, name"
-      )
+      const again = await queryMenuRows()
+      rows = again.rows
+      hasDescriptionEs = again.hasDescriptionEs
     }
     if (!rows || !rows.length) return res.json([])
     const activeOnly = req.query.all !== "1"
@@ -44,6 +81,7 @@ router.get("/", async (req, res) => {
       cat: r.cat,
       price: Number(r.price),
       desc: r.description || "",
+      desc_es: hasDescriptionEs && r.description_es != null ? String(r.description_es) : "",
       emoji: r.emoji || "🍽️",
       tag: r.tag || "",
       active: !!r.active,
@@ -58,22 +96,38 @@ router.get("/", async (req, res) => {
 // POST add menu item (admin) — use INSERT result insertId so new row id is always correct
 router.post("/", async (req, res) => {
   try {
-    const { name, cat, price, description, emoji, tag, active } = req.body
+    const { name, cat, price, description, description_es, emoji, tag, active } = req.body
     if (!name || price === undefined) {
       return res.status(400).json({ message: "Name and price required" })
     }
-    const insertResult = await db.query(
-      "INSERT INTO menu_items (name, cat, price, description, emoji, tag, active) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [
-        name,
-        cat || "Mains",
-        Number(price),
-        description || "",
-        emoji || "🍽️",
-        tag || "",
-        active !== false ? 1 : 0,
-      ]
-    )
+    let insertResult
+    if (schemaHasDescriptionEs !== false) {
+      try {
+        insertResult = await db.query(
+          "INSERT INTO menu_items (name, cat, price, description, description_es, emoji, tag, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            name,
+            cat || "Mains",
+            Number(price),
+            description || "",
+            description_es || null,
+            emoji || "🍽️",
+            tag || "",
+            active !== false ? 1 : 0,
+          ]
+        )
+      } catch (err) {
+        if (err.code === "ER_BAD_FIELD_ERROR" && err.sqlMessage && err.sqlMessage.includes("description_es")) {
+          schemaHasDescriptionEs = false
+        } else throw err
+      }
+    }
+    if (insertResult == null) {
+      insertResult = await db.query(
+        "INSERT INTO menu_items (name, cat, price, description, emoji, tag, active) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [name, cat || "Mains", Number(price), description || "", emoji || "🍽️", tag || "", active !== false ? 1 : 0]
+      )
+    }
     const newId = insertResult && insertResult.insertId != null ? Number(insertResult.insertId) : null
     if (newId == null) {
       return res.status(500).json({ message: "Failed to add item" })
@@ -89,9 +143,22 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10)
-    const { name, cat, price, description, emoji, tag, active } = req.body
+    const { name, cat, price, description, description_es, emoji, tag, active } = req.body
     if (!name || price === undefined) {
       return res.status(400).json({ message: "Name and price required" })
+    }
+    if (schemaHasDescriptionEs !== false) {
+      try {
+        await db.query(
+          "UPDATE menu_items SET name=?, cat=?, price=?, description=?, description_es=?, emoji=?, tag=?, active=? WHERE id=?",
+          [name, cat || "Mains", Number(price), description || "", description_es || null, emoji || "🍽️", tag || "", active !== false ? 1 : 0, id]
+        )
+        return res.json({ message: "Item updated" })
+      } catch (err) {
+        if (err.code === "ER_BAD_FIELD_ERROR" && err.sqlMessage && err.sqlMessage.includes("description_es")) {
+          schemaHasDescriptionEs = false
+        } else throw err
+      }
     }
     await db.query(
       "UPDATE menu_items SET name=?, cat=?, price=?, description=?, emoji=?, tag=?, active=? WHERE id=?",

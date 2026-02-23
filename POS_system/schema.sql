@@ -1,7 +1,8 @@
--- Wakedonalds POS - MySQL schema
+-- Wakedonalds POS - MySQL schema (source of truth for the app)
 -- Run this in MySQL to create the database and tables:
 --   mysql -u root -p < schema.sql
 -- Or create the database first, then run the CREATE TABLE statements.
+-- The API (routes/orders.js, routes/menu.js, auth.js) and frontend expect this schema.
 
 CREATE DATABASE IF NOT EXISTS wakedonalds;
 USE wakedonalds;
@@ -16,13 +17,14 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Menu items
+-- Menu items (description = English; description_es = optional Spanish for live translation)
 CREATE TABLE IF NOT EXISTS menu_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   cat VARCHAR(80) NOT NULL,
   price DECIMAL(10,2) NOT NULL,
   description TEXT,
+  description_es TEXT,
   emoji VARCHAR(10) DEFAULT '🍽️',
   tag VARCHAR(20) DEFAULT '',
   active TINYINT(1) NOT NULL DEFAULT 1,
@@ -44,9 +46,13 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Roles: admin, customer, staff (only these three)
+-- Roles: admin, customer (only these two)
 -- Seed admin user (password: admin123 - change in production!)
+-- App hashes new passwords with bcrypt; this plain-text seed still works (login accepts both).
 INSERT IGNORE INTO users (name, email, password, role) VALUES
 ('Admin', 'admin@wakedonalds.com', 'admin123', 'admin');
 
 -- Default menu is loaded by the app on first use or via API.
+
+-- If you already have menu_items without description_es, run:
+-- ALTER TABLE menu_items ADD COLUMN description_es TEXT NULL AFTER description;
