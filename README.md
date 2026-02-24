@@ -38,9 +38,7 @@ cd newWakeDonalds
 3. Open the file **schema.sql** from the project folder in a text editor. Copy everything in it.
 4. Paste into the big SQL box in phpMyAdmin and click **Go**.
 
-You should see a success message. That creates the database and the admin user.
-
-**Optional:** Do the same for **seed_menu.sql** (adds the default menu) and **set_roles.sql** (sets admin role). Paste each file's contents into the SQL tab and click **Go**.
+You should see a success message. That creates the database, tables, admin user, and default menu in one go.
 
 ### 4. Create a `.env` file (optional)
 
@@ -92,9 +90,9 @@ Admin sign-in:
 
 ---
 
-## Email setup (order confirmations)
+## Email setup (order & status emails)
 
-When customers provide an email at checkout (Restaurant POS or guest order), the app can send order confirmation emails. To enable this:
+When customers provide an email at checkout, the app can send **order confirmation** emails and **status** emails (Ready for Pickup, Picked Up). To enable these:
 
 ### Gmail (recommended for testing)
 
@@ -137,12 +135,13 @@ Only Admin can see the admin panel. Passwords are stored hashed (bcrypt); existi
 
 ---
 
-## SQL Files (what they do)
+## SQL setup (one file)
 
-| File              | Use it to… |
-|-------------------|------------|
-| **schema.sql**    | Create the database and tables (run this first). |
-| **seed_menu.sql** | Load the default menu (optional). |
-| **set_roles.sql** | Set admin role (optional). |
+**schema.sql** is the only SQL file. Run it once to create the database, tables, admin user, and default menu.
 
-Run them in phpMyAdmin's SQL tab: paste the file contents and click **Go**. For command-line MySQL setup, see **MYSQL_SETUP.md**.
+- **phpMyAdmin:** Open the SQL tab, paste the full contents of `schema.sql`, click **Go**.
+- **Command line:** `mysql -u root -p < schema.sql`
+
+If you already had the database and see *"Unknown column 'ready_email_sent'"* when updating order status, open `schema.sql`, find the commented `ALTER TABLE` lines near the end, uncomment them, run only those two lines in phpMyAdmin, then comment them back out.
+
+For more options (e.g. command-line MySQL), see **MYSQL_SETUP.md**.

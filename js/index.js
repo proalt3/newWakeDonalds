@@ -114,4 +114,20 @@
   window.continueAsGuest = continueAsGuest;
   window.handleLogin = handleLogin;
   window.handleRegister = handleRegister;
+
+  document.getElementById("loginEmail").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); handleLogin(); }
+  });
+  document.getElementById("loginPassword").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); handleLogin(); }
+  });
+  document.getElementById("registerName").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); handleRegister(); }
+  });
+  document.getElementById("registerEmail").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); handleRegister(); }
+  });
+  document.getElementById("registerPassword").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); handleRegister(); }
+  });
 })();

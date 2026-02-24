@@ -262,10 +262,14 @@ router.patch("/:id/status", async (req, res) => {
         if (row) {
           const order = mapOrderRow(row)
           sendStatusUpdateEmail({ ...order, orderNum: order.num }, status)
-          if (shouldSendReady) {
-            await db.query("UPDATE orders SET ready_email_sent = 1 WHERE id = ?", [id])
-          } else if (shouldSendPickedUp) {
-            await db.query("UPDATE orders SET picked_up_email_sent = 1 WHERE id = ?", [id])
+          try {
+            if (shouldSendReady) {
+              await db.query("UPDATE orders SET ready_email_sent = 1 WHERE id = ?", [id])
+            } else if (shouldSendPickedUp) {
+              await db.query("UPDATE orders SET picked_up_email_sent = 1 WHERE id = ?", [id])
+            }
+          } catch (_) {
+            // Columns may not exist (old DB); run: ALTER TABLE orders ADD COLUMN ready_email_sent TINYINT(1) NOT NULL DEFAULT 0, ADD COLUMN picked_up_email_sent TINYINT(1) NOT NULL DEFAULT 0;
           }
         }
       } catch (e) {

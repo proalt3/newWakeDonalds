@@ -1,13 +1,11 @@
--- Wakedonalds POS - MySQL schema (source of truth for the app)
--- Run this in MySQL to create the database and tables:
---   mysql -u root -p < schema.sql
--- Or create the database first, then run the CREATE TABLE statements.
--- The API (routes/orders.js, routes/menu.js, auth.js) and frontend expect this schema.
+-- Wakedonalds POS - MySQL setup (one file: database, tables, admin, default menu)
+-- Run once for a fresh install:  mysql -u root -p < schema.sql
+-- Or in phpMyAdmin: create database wakedonalds, then paste this file into the SQL tab.
 
 CREATE DATABASE IF NOT EXISTS wakedonalds;
 USE wakedonalds;
 
--- Users (for login/register; admin = admin@wakedonalds.com)
+-- Users (login/register; admin = admin@wakedonalds.com)
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
@@ -17,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Menu items (description = English; description_es = optional Spanish for live translation)
+-- Menu items (description_es = optional Spanish)
 CREATE TABLE IF NOT EXISTS menu_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
@@ -31,7 +29,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Orders (one row per order; items stored as JSON in same table)
+-- Orders (items stored as JSON)
 CREATE TABLE IF NOT EXISTS orders (
   id INT AUTO_INCREMENT PRIMARY KEY,
   order_num VARCHAR(20) NOT NULL UNIQUE,
@@ -49,17 +47,31 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Roles: admin, customer (only these two)
--- Seed admin user (password: admin123 - change in production!)
--- App hashes new passwords with bcrypt; this plain-text seed still works (login accepts both).
+-- Admin user (password: admin123 — change in production!)
 INSERT IGNORE INTO users (name, email, password, role) VALUES
 ('Admin', 'admin@wakedonalds.com', 'admin123', 'admin');
 
--- If you already have an orders table, add missing columns:
--- ALTER TABLE orders ADD COLUMN email VARCHAR(255) DEFAULT NULL AFTER phone;
--- For status-email deduplication: run migrate_status_email_flags.sql
+-- Default menu (run once; skip or delete this block if you already have items)
+INSERT INTO menu_items (name, cat, price, description, emoji, tag, active) VALUES
+('Fries', 'Starters', 5, 'Crispy golden fries', '🍟', 'popular', 1),
+('Crunchwrap Supreme', 'Mains', 9, 'Flour tortilla, seasoned beef, nacho cheese, lettuce, tomato', '🌯', 'popular', 1),
+('Tonkotsu Ramen', 'Mains', 14, 'Rich pork broth, noodles, chashu pork, soft-boiled egg', '🍜', '', 1),
+('Chicken Filet Sandwich', 'Mains', 10, 'Crispy chicken filet, lettuce, pickles, brioche bun', '🥪', 'popular', 1),
+('Burger', 'Mains', 11, 'Beef patty, cheese, lettuce, tomato, special sauce', '🍔', '', 1),
+('Hot Dog', 'Mains', 7, 'All-beef frank, mustard, ketchup, relish', '🌭', '', 1),
+('Spicy Pasta', 'Pasta & Risotto', 12, 'Rigatoni, spicy tomato sauce, parmigiano', '🍝', 'spicy', 1),
+('Mac & Cheese', 'Pasta & Risotto', 10, 'Creamy cheddar sauce, elbow pasta, breadcrumb topping', '🧀', 'popular', 1),
+('Ice Cream', 'Desserts', 4, 'Vanilla soft serve, cone or cup', '🍦', 'popular', 1),
+('Chocolate Brownie', 'Desserts', 5, 'Warm fudge brownie, powdered sugar', '🍫', '', 1),
+('Apple Pie', 'Desserts', 4, 'Flaky crust, cinnamon apple filling', '🥧', '', 1),
+('Water', 'Drinks', 1, 'Cold bottled water', '💧', '', 1),
+('Soda', 'Drinks', 3, 'Coke, Sprite, or Dr. Pepper', '🥤', 'popular', 1),
+('Milkshake', 'Drinks', 6, 'Vanilla, chocolate, or strawberry', '🥛', '', 1);
 
--- Default menu is loaded by the app on first use or via API.
+-- ─── Existing database only: if you see "Unknown column 'ready_email_sent'" when updating order status,
+--     uncomment and run the next two lines (then comment them out again so re-runs don't error):
+-- ALTER TABLE orders ADD COLUMN ready_email_sent TINYINT(1) NOT NULL DEFAULT 0;
+-- ALTER TABLE orders ADD COLUMN picked_up_email_sent TINYINT(1) NOT NULL DEFAULT 0;
 
--- If you already have menu_items without description_es, run:
--- ALTER TABLE menu_items ADD COLUMN description_es TEXT NULL AFTER description;
+-- ─── If admin user exists but lost admin role, run:
+-- UPDATE users SET role = 'admin' WHERE email = 'admin@wakedonalds.com';
