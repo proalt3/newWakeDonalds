@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS orders (
   tax DECIMAL(10,2) NOT NULL,
   total DECIMAL(10,2) NOT NULL,
   status VARCHAR(30) NOT NULL DEFAULT 'In Progress',
+  ready_email_sent TINYINT(1) NOT NULL DEFAULT 0,
+  picked_up_email_sent TINYINT(1) NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -53,8 +55,9 @@ CREATE TABLE IF NOT EXISTS orders (
 INSERT IGNORE INTO users (name, email, password, role) VALUES
 ('Admin', 'admin@wakedonalds.com', 'admin123', 'admin');
 
--- If you already have an orders table without email, add the column:
+-- If you already have an orders table, add missing columns:
 -- ALTER TABLE orders ADD COLUMN email VARCHAR(255) DEFAULT NULL AFTER phone;
+-- For status-email deduplication: run migrate_status_email_flags.sql
 
 -- Default menu is loaded by the app on first use or via API.
 

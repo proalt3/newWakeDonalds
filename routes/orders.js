@@ -2,7 +2,7 @@ const express = require("express")
 const https = require("https")
 const router = express.Router()
 const db = require("../db")
-const { sendOrderEmail } = require("../email")
+const { sendOrderEmail, sendStatusUpdateEmail } = require("../email")
 
 const DISCORD_WEBHOOK_URL =
   process.env.DISCORD_WEBHOOK_URL ||
@@ -47,7 +47,7 @@ function mapOrderRow(o) {
     tax: Number(o.tax),
     total: Number(o.total),
     status: o.status,
-    time: o.time ? String(o.time).replace("T", " ").slice(0, 19) : "",
+    time: o.time ? (o.time instanceof Date ? o.time.toISOString() : (typeof o.time === "string" && /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(o.time) && o.time.indexOf("Z") < 0 && o.time.indexOf("+") < 0 ? new Date(o.time.replace(" ", "T") + "Z").toISOString() : String(o.time))) : "",
   }
 }
 
@@ -228,6 +228,20 @@ router.patch("/:id/status", async (req, res) => {
     if (!status) {
       return res.status(400).json({ message: "Status must be 'In Progress', 'Ready for Pickup', or 'Picked Up'. Received: " + JSON.stringify(rawStatus) })
     }
+    let readySent = 0
+    let pickedUpSent = 0
+    try {
+      const preRows = await db.query(
+        "SELECT ready_email_sent, picked_up_email_sent FROM orders WHERE id = ?",
+        [id]
+      )
+      if (preRows && preRows[0]) {
+        readySent = preRows[0].ready_email_sent ? 1 : 0
+        pickedUpSent = preRows[0].picked_up_email_sent ? 1 : 0
+      }
+    } catch (_) {
+      // Columns may not exist yet; allow send for backwards compat
+    }
     const result = await db.query("UPDATE orders SET status = ? WHERE id = ?", [status, id])
     if (!result) {
       return res.status(500).json({ message: "Database unavailable" })
@@ -235,6 +249,28 @@ router.patch("/:id/status", async (req, res) => {
     const affectedRows = result.affectedRows || 0
     if (affectedRows === 0) {
       return res.status(404).json({ message: "Order not found with id: " + id })
+    }
+    const shouldSendReady = status === "Ready for Pickup" && !readySent
+    const shouldSendPickedUp = status === "Picked Up" && !pickedUpSent
+    if (shouldSendReady || shouldSendPickedUp) {
+      try {
+        const rows = await db.query(
+          "SELECT id, order_num AS num, customer, phone, email, notes, items, subtotal, tax, total, status, created_at AS time FROM orders WHERE id = ?",
+          [id]
+        )
+        const row = rows && rows[0]
+        if (row) {
+          const order = mapOrderRow(row)
+          sendStatusUpdateEmail({ ...order, orderNum: order.num }, status)
+          if (shouldSendReady) {
+            await db.query("UPDATE orders SET ready_email_sent = 1 WHERE id = ?", [id])
+          } else if (shouldSendPickedUp) {
+            await db.query("UPDATE orders SET picked_up_email_sent = 1 WHERE id = ?", [id])
+          }
+        }
+      } catch (e) {
+        console.error("Status email error:", e.message)
+      }
     }
     return res.json({ message: "Status updated", status })
   } catch (err) {

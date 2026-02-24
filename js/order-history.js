@@ -36,10 +36,9 @@
   function orderDateStr(o) {
     var t = o.time;
     if (!t) return "";
-    var s = String(t);
-    if (s.indexOf("T") !== -1) return s.slice(0, 10);
-    if (s.indexOf(" ") !== -1) return s.slice(0, 10);
-    return s.slice(0, 10);
+    var d = new Date(t);
+    if (isNaN(d.getTime())) return String(t).slice(0, 10);
+    return d.toLocaleDateString("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" });
   }
 
   function applyDateFilter() {
@@ -147,7 +146,10 @@
   }
   function formatTime(t) {
     if (!t) return "—";
-    return String(t).replace("T", " ").slice(0, 16);
+    var d = new Date(t);
+    if (isNaN(d.getTime())) return String(t).replace("T", " ").slice(0, 16);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) + " " +
+      d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true });
   }
 
   var picker = document.getElementById("order-date-picker");

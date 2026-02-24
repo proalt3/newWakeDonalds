@@ -52,7 +52,7 @@
   function getOrderDate(o) {
     if (!o || !o.time) return "";
     var d = new Date(String(o.time).trim());
-    return isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+    return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" });
   }
 
   function showToast(msg) {

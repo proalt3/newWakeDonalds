@@ -157,10 +157,13 @@
       return;
     }
     if (feedPanel) feedPanel.style.display = "";
+    const showAllOrders = canAccessAdmin;
+    const feedTitle = document.querySelector(".live-feed-title span:last-child");
+    if (feedTitle) feedTitle.textContent = showAllOrders ? "Kitchen Queue" : (window.t ? window.t("cart_my_orders") : "Your Orders");
     try {
-      const customerName = (user && user.name) ? encodeURIComponent(user.name) : "";
-      if (!customerName) return;
-      const r = await fetch(API + "/api/orders/my?customer=" + customerName);
+      const url = showAllOrders ? API + "/api/orders" : API + "/api/orders/my?customer=" + encodeURIComponent((user && user.name) || "");
+      if (!showAllOrders && !(user && user.name)) return;
+      const r = await fetch(url);
       if (r.ok) {
         const orders = await r.json();
         const activeOrders = (orders || []).filter(function(o) {
@@ -175,21 +178,37 @@
           }
         } else {
           const newHtml = recentOrders.map(function (o) {
-            const statusClass = o.status === "Ready for Pickup" ? "status-ready" : "status-in-progress";
+            const statusClass = o.status === "Ready for Pickup" ? "status-ready" : (o.status === "Picked Up" ? "status-picked" : "status-in-progress");
             const statusText = o.status || "In Progress";
             const itemsText = (o.items || []).slice(0, 3).map(function (i) {
               return escapeHtml(i.name) + " ×" + (i.qty || 1);
             }).join(", ") + ((o.items || []).length > 3 ? " +" + ((o.items || []).length - 3) + " more" : "");
             const timeStr = o.time ? new Date(o.time).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true }) : "";
+            const orderId = o.id || o.num;
+            let statusBtns = "";
+            if (showAllOrders && orderId != null && orderId !== "" && orderId !== "undefined") {
+              if (statusText === "Ready for Pickup") {
+                statusBtns = '<div class="live-order-actions">' +
+                  '<button class="icon-btn" onclick="updateOrderStatus(' + orderId + ', \'In Progress\')" title="Mark as In Progress">⏳ In Progress</button> ' +
+                  '<button class="icon-btn" style="background:var(--muted);color:white;border-color:var(--muted);" onclick="updateOrderStatus(' + orderId + ', \'Picked Up\')" title="Mark as Picked Up">✓ Picked Up</button>' +
+                  '</div>';
+              } else if (statusText === "In Progress") {
+                statusBtns = '<div class="live-order-actions">' +
+                  '<button class="icon-btn" style="background:var(--green);color:white;border-color:var(--green);" onclick="updateOrderStatus(' + orderId + ', \'Ready for Pickup\')" title="Mark as Ready for Pickup">✅ Ready</button> ' +
+                  '<button class="icon-btn" style="background:var(--muted);color:white;border-color:var(--muted);" onclick="updateOrderStatus(' + orderId + ', \'Picked Up\')" title="Mark as Picked Up">✓ Picked Up</button>' +
+                  '</div>';
+              }
+            }
             return (
               '<div class="live-order-card" data-order-id="' + escapeHtml(String(o.id || o.num || "")) + '">' +
               '<div class="live-order-header">' +
               '<div class="live-order-num">Order #' + escapeHtml(String(o.num || "")) + '</div>' +
               '<span class="live-order-status ' + statusClass + '">● ' + escapeHtml(statusText) + '</span>' +
               '</div>' +
-              '<div class="live-order-info">' + escapeHtml(o.phone || "—") + '</div>' +
+              '<div class="live-order-info">' + escapeHtml(o.customer || "—") + ' · ' + escapeHtml(o.phone || "—") + '</div>' +
               '<div class="live-order-items">' + itemsText + '</div>' +
               '<div class="live-order-time">' + escapeHtml(timeStr) + '</div>' +
+              statusBtns +
               '</div>'
             );
           }).join("");
@@ -209,11 +228,32 @@
               const card = feedBody.querySelector('[data-order-id="' + String(o.id || o.num || "") + '"]');
               if (card) {
                 const statusEl = card.querySelector(".live-order-status");
-                const statusClass = o.status === "Ready for Pickup" ? "status-ready" : "status-in-progress";
+                const statusClass = o.status === "Ready for Pickup" ? "status-ready" : (o.status === "Picked Up" ? "status-picked" : "status-in-progress");
                 const statusText = o.status || "In Progress";
                 if (statusEl) {
                   statusEl.className = "live-order-status " + statusClass;
                   statusEl.innerHTML = "● " + escapeHtml(statusText);
+                }
+                if (showAllOrders) {
+                  const actionsEl = card.querySelector(".live-order-actions");
+                  const orderId = o.id || o.num;
+                  if (orderId != null && orderId !== "" && orderId !== "undefined") {
+                    let statusBtns = "";
+                    if (statusText === "Ready for Pickup") {
+                      statusBtns = '<button class="icon-btn" onclick="updateOrderStatus(' + orderId + ', \'In Progress\')" title="Mark as In Progress">⏳ In Progress</button> ' +
+                        '<button class="icon-btn" style="background:var(--muted);color:white;border-color:var(--muted);" onclick="updateOrderStatus(' + orderId + ', \'Picked Up\')" title="Mark as Picked Up">✓ Picked Up</button>';
+                    } else if (statusText === "In Progress") {
+                      statusBtns = '<button class="icon-btn" style="background:var(--green);color:white;border-color:var(--green);" onclick="updateOrderStatus(' + orderId + ', \'Ready for Pickup\')" title="Mark as Ready for Pickup">✅ Ready</button> ' +
+                        '<button class="icon-btn" style="background:var(--muted);color:white;border-color:var(--muted);" onclick="updateOrderStatus(' + orderId + ', \'Picked Up\')" title="Mark as Picked Up">✓ Picked Up</button>';
+                    }
+                    if (actionsEl) actionsEl.innerHTML = statusBtns;
+                    else if (statusBtns) {
+                      const wrap = document.createElement("div");
+                      wrap.className = "live-order-actions";
+                      wrap.innerHTML = statusBtns;
+                      card.appendChild(wrap);
+                    }
+                  }
                 }
               }
             });
@@ -419,7 +459,14 @@
       }
       const phoneRaw = (phoneEl && phoneEl.value || "").trim();
       const phoneDigits = getPhoneDigits(phoneRaw);
-      const phone = phoneDigits.length === 10 ? formatPhoneDisplay(phoneRaw) : null;
+      if (phoneDigits.length !== 10) {
+        placeOrderSubmitting = false;
+        if (btn) { btn.disabled = false; btn.textContent = (window.t && window.t("cart_place_order")) || "Place Order →"; }
+        showToast("Please enter a valid 10-digit phone number");
+        if (phoneEl) phoneEl.focus();
+        return;
+      }
+      const phone = formatPhoneDisplay(phoneRaw);
       const notes = (notesEl && notesEl.value || "").trim();
       const subtotal = cart.reduce((s, i) => s + Number(i.price) * i.qty, 0);
       const tax = subtotal * TAX;
@@ -518,6 +565,32 @@
     t.classList.add("show");
     setTimeout(() => t.classList.remove("show"), 2200);
   }
+
+  async function updateOrderStatus(orderId, newStatus) {
+    if (newStatus !== "In Progress" && newStatus !== "Ready for Pickup" && newStatus !== "Picked Up") return;
+    if (!orderId || orderId === "null" || orderId === "undefined") {
+      showToast("Invalid order ID");
+      return;
+    }
+    try {
+      const r = await fetch(API + "/api/orders/" + orderId + "/status", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = r.ok ? await r.json().catch(() => ({})) : await r.json().catch(() => ({}));
+      if (r.ok) {
+        showToast("Order status updated to " + newStatus);
+        loadLiveFeed();
+      } else {
+        showToast(data.message || "Failed to update status");
+      }
+    } catch (err) {
+      console.error("Update status error:", err);
+      showToast("Failed to update status");
+    }
+  }
+  window.updateOrderStatus = updateOrderStatus;
 
   (function () {
     var searchEl = document.getElementById("menu-search");
