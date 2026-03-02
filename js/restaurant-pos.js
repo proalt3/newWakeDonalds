@@ -16,8 +16,10 @@
   if (user.email === "admin@wakedonalds.com" && user.role === "customer") user.role = "admin";
   const canAccessAdmin = user.role === "admin";
   if (canAccessAdmin) {
-    const btn = document.getElementById("nav-admin-btn");
-    if (btn) btn.style.display = "inline-block";
+    const adminBtn = document.getElementById("nav-admin-btn");
+    if (adminBtn) adminBtn.style.display = "inline-block";
+    const liveOrdersBtn = document.getElementById("nav-live-orders-btn");
+    if (liveOrdersBtn) liveOrdersBtn.style.display = "inline-block";
   }
   const isGuest = user.role === "guest" || user.name === "Guest";
   const orderHistoryLink = document.getElementById("nav-order-history");
@@ -135,6 +137,11 @@
     }
     if (name === "cart") {
       renderCart();
+      var scheduleDate = document.getElementById("schedule-date");
+      if (scheduleDate && !scheduleDate.min) {
+        var today = new Date();
+        scheduleDate.min = today.toISOString().slice(0, 10);
+      }
     }
   }
   window.showView = showView;
@@ -468,6 +475,17 @@
       }
       const phone = formatPhoneDisplay(phoneRaw);
       const notes = (notesEl && notesEl.value || "").trim();
+      const sendLiveEl = document.getElementById("send-live-updates");
+      const sendLiveUpdates = !sendLiveEl || sendLiveEl.checked;
+      const scheduleDateEl = document.getElementById("schedule-date");
+      const scheduleTimeEl = document.getElementById("schedule-time");
+      let scheduled_at = null;
+      const dateVal = (scheduleDateEl && scheduleDateEl.value || "").trim();
+      const timeVal = (scheduleTimeEl && scheduleTimeEl.value || "").trim();
+      if (dateVal && timeVal) {
+        const d = new Date(dateVal + "T" + timeVal);
+        if (!isNaN(d.getTime())) scheduled_at = d.toISOString();
+      }
       const subtotal = cart.reduce((s, i) => s + Number(i.price) * i.qty, 0);
       const tax = subtotal * TAX;
       const total = subtotal + tax;
@@ -487,6 +505,8 @@
             subtotal,
             tax,
             total,
+            send_live_updates: sendLiveUpdates,
+            scheduled_at: scheduled_at || undefined,
           }),
         });
         if (r.ok) {
@@ -510,6 +530,18 @@
         saveOrders();
       }
 
+      var scheduledLabel = (window.t ? window.t("orders_scheduled_for") : "Scheduled for");
+      var scheduledValue = "—";
+      var scheduleDateWhenPlaced = scheduleDateEl ? scheduleDateEl.value : "";
+      var scheduleTimeWhenPlaced = scheduleTimeEl ? scheduleTimeEl.value : "";
+      if (scheduleDateWhenPlaced && scheduleTimeWhenPlaced) {
+        try {
+          var sd = new Date(scheduleDateWhenPlaced + "T" + scheduleTimeWhenPlaced);
+          if (!isNaN(sd.getTime())) {
+            scheduledValue = sd.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
+          }
+        } catch (_) {}
+      }
       const successDetails = document.getElementById("success-details");
       const successOverlay = document.getElementById("success-overlay");
       if (successDetails) {
@@ -517,22 +549,24 @@
         <div class="order-label">Order number</div>
         <div class="order-value">#${orderNum}</div>
         <div class="order-label">Customer</div>
-        <div class="order-value">${nameInput}</div>
+        <div class="order-value">${escapeHtml(nameInput)}</div>
         <div class="order-label">Email</div>
-        <div class="order-value">${emailInput}</div>
+        <div class="order-value">${escapeHtml(emailInput)}</div>
         <div class="order-label">Phone</div>
-        <div class="order-value">${phone || "—"}</div>
+        <div class="order-value">${escapeHtml(phone || "—")}</div>
+        <div class="order-label">${escapeHtml(scheduledLabel)}</div>
+        <div class="order-value">${escapeHtml(scheduledValue)}</div>
         <div class="order-items">
             <div class="order-label">Items</div>
             ${cart
               .map(
                 (i) =>
-                  `<div class="order-item"><span class="order-item-name">${i.name}<span class="order-item-qty">× ${i.qty}</span></span><span>$${(Number(i.price) * i.qty).toFixed(2)}</span></div>`
+                  `<div class="order-item"><span class="order-item-name">${escapeHtml(i.name)}<span class="order-item-qty">× ${i.qty}</span></span><span>$${(Number(i.price) * i.qty).toFixed(2)}</span></div>`
               )
               .join("")}
             <div class="order-total-row"><span>Total</span><span>$${total.toFixed(2)}</span></div>
         </div>
-        ${notes ? `<div class="order-notes">Note: ${notes}</div>` : ""}`;
+        ${notes ? `<div class="order-notes">Note: ${escapeHtml(notes)}</div>` : ""}`;
       }
       if (successOverlay) successOverlay.classList.add("open");
       cart = [];
@@ -541,6 +575,8 @@
       if (nameEl) nameEl.value = "";
       if (phoneEl) phoneEl.value = "";
       if (notesEl) notesEl.value = "";
+      if (scheduleDateEl) scheduleDateEl.value = "";
+      if (scheduleTimeEl) scheduleTimeEl.value = "";
       loadLiveFeed();
     } catch (err) {
       console.error("Place order error:", err);

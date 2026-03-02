@@ -14,7 +14,7 @@ router.get("/my", async (req, res) => {
   if (!customer) return res.json([])
   try {
     const rows = await db.query(
-      "SELECT id, order_num AS num, customer, phone, email, notes, items, subtotal, tax, total, status, created_at AS time FROM orders WHERE customer = ? ORDER BY id DESC",
+      "SELECT id, order_num AS num, customer, phone, email, notes, items, subtotal, tax, total, status, created_at AS time, send_live_updates, scheduled_at FROM orders WHERE customer = ? ORDER BY id DESC",
       [customer]
     )
     if (!rows || !rows.length) return res.json([])
@@ -33,6 +33,12 @@ function mapOrderRow(o) {
       items = typeof o.items === "string" ? JSON.parse(o.items) : o.items
     } catch (_) {}
   }
+  const timeStr = o.time ? (o.time instanceof Date ? o.time.toISOString() : (typeof o.time === "string" && /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(o.time) && o.time.indexOf("Z") < 0 && o.time.indexOf("+") < 0 ? new Date(o.time.replace(" ", "T") + "Z").toISOString() : String(o.time))) : ""
+  let scheduledAt = null
+  if (o.scheduled_at) {
+    const d = o.scheduled_at instanceof Date ? o.scheduled_at : new Date(o.scheduled_at)
+    scheduledAt = isNaN(d.getTime()) ? null : d.toISOString()
+  }
   return {
     id: o.id ? Number(o.id) : null,
     num: o.num,
@@ -47,7 +53,9 @@ function mapOrderRow(o) {
     tax: Number(o.tax),
     total: Number(o.total),
     status: o.status,
-    time: o.time ? (o.time instanceof Date ? o.time.toISOString() : (typeof o.time === "string" && /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(o.time) && o.time.indexOf("Z") < 0 && o.time.indexOf("+") < 0 ? new Date(o.time.replace(" ", "T") + "Z").toISOString() : String(o.time))) : "",
+    time: timeStr,
+    send_live_updates: o.send_live_updates !== undefined ? !!o.send_live_updates : true,
+    scheduled_at: scheduledAt,
   }
 }
 
@@ -55,7 +63,7 @@ function mapOrderRow(o) {
 router.get("/", async (req, res) => {
   try {
     const rows = await db.query(
-      "SELECT id, order_num AS num, customer, phone, email, notes, items, subtotal, tax, total, status, created_at AS time FROM orders ORDER BY id DESC"
+      "SELECT id, order_num AS num, customer, phone, email, notes, items, subtotal, tax, total, status, created_at AS time, send_live_updates, scheduled_at FROM orders ORDER BY id DESC"
     )
     if (!rows || !rows.length) return res.json([])
     const orders = rows.map(mapOrderRow)
@@ -69,7 +77,7 @@ router.get("/", async (req, res) => {
 // POST create order (items stored in orders.items as JSON)
 router.post("/", async (req, res) => {
   try {
-    const { customer, phone, email, notes, items, subtotal, tax, total } = req.body
+    const { customer, phone, email, notes, items, subtotal, tax, total, send_live_updates, scheduled_at } = req.body
     if (!items || !items.length || total === undefined) {
       return res.status(400).json({ message: "Items and total required" })
     }
@@ -81,8 +89,14 @@ router.post("/", async (req, res) => {
         qty: it.qty || 1,
       }))
     )
+    const sendLive = send_live_updates !== false && send_live_updates !== 0
+    let scheduledAt = null
+    if (scheduled_at) {
+      const d = new Date(scheduled_at)
+      if (!isNaN(d.getTime())) scheduledAt = d.toISOString().slice(0, 19).replace("T", " ")
+    }
     await db.query(
-      "INSERT INTO orders (order_num, customer, phone, email, notes, items, subtotal, tax, total, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'In Progress')",
+      "INSERT INTO orders (order_num, customer, phone, email, notes, items, subtotal, tax, total, status, send_live_updates, scheduled_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'In Progress', ?, ?)",
       [
         orderNum,
         customer || "Guest",
@@ -93,6 +107,8 @@ router.post("/", async (req, res) => {
         Number(subtotal) || 0,
         Number(tax) || 0,
         Number(total) || 0,
+        sendLive ? 1 : 0,
+        scheduledAt,
       ]
     )
     const orderRows = await db.query("SELECT LAST_INSERT_ID() AS id")
@@ -115,10 +131,13 @@ router.post("/", async (req, res) => {
       total: Number(total) || 0,
       status: "In Progress",
       createdAt: new Date(),
+      scheduled_at: scheduledAt || null,
     }
 
     sendDiscordOrderWebhook(orderForNotify)
-    sendOrderEmail(orderForNotify)
+    if (sendLive) {
+      sendOrderEmail(orderForNotify)
+    }
 
     return res.status(201).json({ orderNum, id: orderId, message: "Order placed" })
   } catch (err) {
@@ -173,6 +192,28 @@ function sendDiscordOrderWebhook(order) {
       timestamp: (order.createdAt || new Date()).toISOString(),
     }
 
+    if (order.scheduled_at) {
+      try {
+        const d = new Date(order.scheduled_at)
+        if (!isNaN(d.getTime())) {
+          const scheduledStr = d.toLocaleString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })
+          embed.fields.push({
+            name: "Scheduled for",
+            value: scheduledStr,
+            inline: false,
+          })
+        }
+      } catch (_) {}
+    }
+
     const body = JSON.stringify({
       username: "Order Watching",
       embeds: [embed],
@@ -203,6 +244,34 @@ function sendDiscordOrderWebhook(order) {
     console.error("Discord webhook setup error:", err.message)
   }
 }
+
+// DELETE order by id or order_num (admin / Live Orders)
+router.delete("/:id", async (req, res) => {
+  const param = String(req.params.id || "").trim()
+  if (!param) {
+    return res.status(400).json({ message: "Invalid order id" })
+  }
+  try {
+    const idNum = Number(param)
+    let result = !isNaN(idNum) && idNum > 0
+      ? await db.query("DELETE FROM orders WHERE id = ?", [idNum])
+      : null
+    if (!result || (result.affectedRows || 0) === 0) {
+      result = await db.query("DELETE FROM orders WHERE order_num = ?", [param])
+    }
+    if (!result) {
+      return res.status(503).json({ message: "Database unavailable" })
+    }
+    const affected = result.affectedRows || 0
+    if (affected === 0) {
+      return res.status(404).json({ message: "Order not found" })
+    }
+    return res.json({ message: "Order deleted" })
+  } catch (err) {
+    console.error("DELETE order error:", err)
+    return res.status(500).json({ message: "Failed to delete order" })
+  }
+})
 
 // Allowed statuses for PATCH
 const ALLOWED_STATUSES = ["In Progress", "Ready for Pickup", "Picked Up"]
@@ -255,13 +324,16 @@ router.patch("/:id/status", async (req, res) => {
     if (shouldSendReady || shouldSendPickedUp) {
       try {
         const rows = await db.query(
-          "SELECT id, order_num AS num, customer, phone, email, notes, items, subtotal, tax, total, status, created_at AS time FROM orders WHERE id = ?",
+          "SELECT id, order_num AS num, customer, phone, email, notes, items, subtotal, tax, total, status, created_at AS time, send_live_updates, scheduled_at FROM orders WHERE id = ?",
           [id]
         )
         const row = rows && rows[0]
         if (row) {
           const order = mapOrderRow(row)
-          sendStatusUpdateEmail({ ...order, orderNum: order.num }, status)
+          const sendLive = !!order.send_live_updates
+          if (sendLive) {
+            sendStatusUpdateEmail({ ...order, orderNum: order.num }, status)
+          }
           try {
             if (shouldSendReady) {
               await db.query("UPDATE orders SET ready_email_sent = 1 WHERE id = ?", [id])

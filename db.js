@@ -31,6 +31,14 @@ async function ensureOrdersColumns(p) {
         name: "picked_up_email_sent",
         ddl: "ALTER TABLE orders ADD COLUMN picked_up_email_sent TINYINT(1) NOT NULL DEFAULT 0",
       },
+      {
+        name: "send_live_updates",
+        ddl: "ALTER TABLE orders ADD COLUMN send_live_updates TINYINT(1) NOT NULL DEFAULT 1",
+      },
+      {
+        name: "scheduled_at",
+        ddl: "ALTER TABLE orders ADD COLUMN scheduled_at DATETIME DEFAULT NULL",
+      },
     ]
 
     for (const col of required) {

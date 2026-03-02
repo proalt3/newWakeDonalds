@@ -15,11 +15,12 @@
             --shadow-lg:0 8px 40px rgba(26,23,20,0.12);
         }
         *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
-        .view{display:none;} .view.active{display:flex;}
+        html{width:100%;overflow-x:hidden;}
+        body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;width:100%;overflow-x:hidden;}
+        .view{display:none;} .view.active{display:flex;width:100%;min-width:0;flex-direction:column;}
         #view-menu{min-height:100vh;flex-direction:column;}
-        .nav{position:sticky;top:0;z-index:100;background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;box-shadow:0 1px 0 var(--border);}
-        .nav-logo-search{display:flex;align-items:center;gap:12px;flex:1;max-width:420px;}
+        .nav{position:sticky;top:0;z-index:100;background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;min-height:64px;box-shadow:0 1px 0 var(--border);padding-left:max(32px,env(safe-area-inset-left));padding-right:max(32px,env(safe-area-inset-right));}
+        .nav-logo-search{display:flex;align-items:center;gap:12px;flex:1 1 auto;min-width:0;max-width:420px;}
         .logo{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;letter-spacing:0.04em;}
         .logo span{color:var(--accent);font-style:italic;}
         .nav-center{font-size:13px;color:var(--muted);}
@@ -27,7 +28,7 @@
         .nav-search input{width:100%;padding:10px 14px 10px 36px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Outfit',sans-serif;color:var(--ink);background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%239e9890' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E") no-repeat 12px center;}
         .nav-search input:focus{outline:none;border-color:var(--accent);}
         .nav-search input::placeholder{color:var(--muted);}
-        .nav-right{display:flex;align-items:center;gap:12px;}
+        .nav-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
         .btn-admin{font-size:12px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);background:none;border:1px solid var(--border);border-radius:6px;padding:7px 14px;cursor:pointer;transition:all 0.2s;}
         .btn-admin:hover{color:var(--ink);border-color:var(--ink2);}
         .btn-logout{font-size:12px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--red);background:none;border:1px solid var(--red);border-radius:6px;padding:7px 14px;cursor:pointer;transition:all 0.2s;}
@@ -41,7 +42,7 @@
         .cat-tab{padding:14px 20px;font-size:13px;font-weight:500;color:var(--muted);border:none;background:none;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all 0.2s;}
         .cat-tab:hover{color:var(--ink);}
         .cat-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-        .menu-container{display:grid;grid-template-columns:1fr 320px;gap:24px;padding:32px;max-width:1400px;margin:0 auto;width:100%;align-items:start;}
+        .menu-container{display:grid;grid-template-columns:1fr 320px;gap:24px;padding:32px;max-width:1400px;margin:0 auto;width:100%;min-width:0;align-items:start;padding-left:max(32px,env(safe-area-inset-left));padding-right:max(32px,env(safe-area-inset-right));}
         @media(max-width:1024px){.menu-container{grid-template-columns:1fr;}}
         .menu-body{flex:1;}
         .menu-content{padding:0;}
@@ -63,11 +64,11 @@
         .add-btn{width:100%;background:var(--ink);color:white;border:none;border-radius:8px;padding:10px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:background 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;}
         .add-btn:hover{background:var(--accent);}
         #view-cart{min-height:100vh;flex-direction:column;}
-        .page-header{background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;height:64px;display:flex;align-items:center;gap:16px;}
+        .page-header{background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;min-height:64px;display:flex;align-items:center;flex-wrap:wrap;gap:16px;padding-left:max(32px,env(safe-area-inset-left));padding-right:max(32px,env(safe-area-inset-right));}
         .back-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;color:var(--ink2);transition:all 0.2s;}
         .back-btn:hover{border-color:var(--ink);color:var(--ink);}
         .page-title{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;}
-        .cart-layout{display:grid;grid-template-columns:1fr 360px;gap:24px;padding:32px;max-width:1400px;margin:0 auto;width:100%;align-items:start;}
+        .cart-layout{display:grid;grid-template-columns:1fr 360px;gap:24px;padding:32px;max-width:1400px;margin:0 auto;width:100%;min-width:0;align-items:start;padding-left:max(32px,env(safe-area-inset-left));padding-right:max(32px,env(safe-area-inset-right));}
         @media(max-width:1200px){.cart-layout{grid-template-columns:1fr;}}
         .live-feed-panel{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:sticky;top:80px;box-shadow:var(--shadow);}
         .live-feed-header{background:linear-gradient(135deg,var(--accent-light),var(--white));padding:16px 18px;border-bottom:2px solid var(--accent);}
@@ -109,7 +110,7 @@
             .nav-search input{font-size:16px;min-height:44px;}
             .nav-center{display:none;}
             .nav-right{width:100%;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-bottom:4px;order:2;}
-            .nav-right .btn-admin,.nav-right .btn-logout,.nav-right .cart-btn,.nav-right .lang-select{min-height:44px;padding:10px 14px;}
+            .nav-right .btn-admin,.nav-right .btn-logout,.nav-right .cart-btn{min-height:44px;padding:10px 14px;}
             .category-bar{padding:0 12px;padding-left:max(12px,env(safe-area-inset-left));}
             .cat-tab{padding:12px 16px;min-height:44px;font-size:13px;}
             .menu-container{padding:16px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));}
@@ -131,7 +132,7 @@
             .cart-btn span:not(.cart-count){display:none;}
             .summary-panel{position:static;}
         }
-        .cart-items-panel{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+        .cart-items-panel{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;min-width:0;}
         .panel-head{padding:16px 20px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted);}
         .cart-item{display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--border);animation:fadeUp 0.3s ease both;}
         .cart-item:last-child{border-bottom:none;}
@@ -146,7 +147,7 @@
         .cart-item-total{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;min-width:60px;text-align:right;}
         .remove-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px;border-radius:4px;transition:color 0.2s;}
         .remove-btn:hover{color:var(--red);}
-        .summary-panel{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:sticky;top:80px;}
+        .summary-panel{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:sticky;top:80px;min-width:0;}
         .summary-rows{padding:20px;display:flex;flex-direction:column;gap:12px;}
         .summary-row{display:flex;justify-content:space-between;font-size:14px;color:var(--ink2);}
         .summary-row.total{padding-top:12px;border-top:1px solid var(--border);font-weight:600;font-size:16px;color:var(--ink);}
@@ -155,14 +156,18 @@
         .form-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;display:block;}
         .form-input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-family:'Outfit',sans-serif;font-size:14px;color:var(--ink);background:var(--bg);outline:none;transition:border-color 0.2s;margin-bottom:12px;}
         .form-input:focus{border-color:var(--accent);}
+        .schedule-row{display:flex;gap:12px;margin-bottom:12px;}
+        .schedule-row .form-input{margin-bottom:0;flex:1;}
+        .form-checkbox-label{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:14px;color:var(--ink2);cursor:pointer;}
+        .form-checkbox-label input{width:18px;height:18px;accent-color:var(--accent);}
         .checkout-btn{width:100%;background:var(--accent);color:white;border:none;border-radius:10px;padding:14px;font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.2s;margin-top:4px;}
         .checkout-btn:hover{background:var(--accent-dark);}
         .empty-cart{padding:60px 20px;text-align:center;color:var(--muted);}
         .empty-cart .icon{font-size:48px;margin-bottom:12px;}
         .empty-cart p{font-size:14px;}
-        .success-overlay{position:fixed;inset:0;background:rgba(26,23,20,0.6);z-index:2000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+        .success-overlay{position:fixed;inset:0;background:rgba(26,23,20,0.6);z-index:2000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));}
         .success-overlay.open{display:flex;}
-        .success-card{background:white;border-radius:20px;padding:48px 40px;text-align:center;max-width:400px;width:90%;animation:modalIn 0.3s ease both;}
+        .success-card{background:white;border-radius:20px;padding:48px 40px;text-align:center;max-width:400px;width:100%;animation:modalIn 0.3s ease both;}
         .success-icon{font-size:56px;margin-bottom:16px;}
         .success-title{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:600;margin-bottom:8px;}
         .success-sub{color:var(--muted);font-size:14px;margin-bottom:28px;line-height:1.6;}
@@ -176,9 +181,10 @@
         .success-order .order-item-qty{color:var(--muted);margin-left:8px;}
         .success-order .order-total-row{display:flex;justify-content:space-between;padding-top:10px;margin-top:10px;border-top:1px solid var(--border);font-weight:600;font-size:15px;color:var(--accent);}
         .success-order .order-notes{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);font-style:italic;}
-        .lang-select{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'Outfit',sans-serif;color:var(--ink2);background:var(--bg);cursor:pointer;}
-        .lang-select:focus{outline:none;border-color:var(--accent);}
-        .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:white;padding:12px 22px;border-radius:30px;font-size:13px;font-weight:500;z-index:3000;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;}
+        .google-translate-wrap{display:inline-block;vertical-align:middle;}
+        .google-translate-wrap .skiptranslate{font-size:0;}
+        .google-translate-wrap iframe{max-height:32px;}
+        .toast{position:fixed;bottom:max(24px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:white;padding:12px 22px;border-radius:30px;font-size:13px;font-weight:500;z-index:3000;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;max-width:calc(100vw - 32px);}
         .toast.show{transform:translateX(-50%) translateY(0);}
         select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239e9890' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -198,11 +204,9 @@
         </div>
         <div class="nav-center" id="nav-user"></div>
         <div class="nav-right">
-            <select id="lang-select" class="lang-select" aria-label="Language">
-                <option value="en">English</option>
-                <option value="es">Español</option>
-            </select>
+            <div id="google_translate_element" class="google-translate-wrap"></div>
             <a href="order-history.html" class="btn-admin" id="nav-order-history" style="display:none;text-decoration:none" data-i18n="nav_order_history">📋 Order History</a>
+            <a href="admin-orders.html" class="btn-admin" id="nav-live-orders-btn" style="display:none;text-decoration:none" data-i18n="admin_live_orders">📋 Live Orders</a>
             <a href="admin.html" class="btn-admin" id="nav-admin-btn" style="display:none;text-decoration:none" data-i18n="nav_admin">⚙ Admin</a>
             <button class="btn-logout" onclick="logout()" data-i18n="nav_logout">Logout</button>
             <button class="cart-btn" onclick="showView('cart')">
@@ -254,6 +258,15 @@
                 <span class="form-hint" id="phone-hint" style="display:none;font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:8px;">10 digits, numbers only</span>
                 <label class="form-label" data-i18n="cart_special_notes">Special Notes</label>
                 <input class="form-input" id="special-notes" placeholder="Allergies, preferences…"/>
+                <label class="form-label" data-i18n="cart_schedule_for">Schedule for later (optional)</label>
+                <div class="schedule-row">
+                    <input class="form-input" id="schedule-date" type="date" min="" aria-label="Schedule date"/>
+                    <input class="form-input" id="schedule-time" type="time" aria-label="Schedule time"/>
+                </div>
+                <label class="form-checkbox-label">
+                    <input type="checkbox" id="send-live-updates" checked/>
+                    <span data-i18n="cart_send_live_updates">Send live order updates to my email</span>
+                </label>
                 <button class="checkout-btn" onclick="placeOrder()" data-i18n="cart_place_order">Place Order →</button>
             </div>
         </div>
@@ -273,6 +286,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="js/google-translate.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/restaurant-pos.js"></script>
 </body>

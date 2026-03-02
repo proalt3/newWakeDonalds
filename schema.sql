@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS orders (
   status VARCHAR(30) NOT NULL DEFAULT 'In Progress',
   ready_email_sent TINYINT(1) NOT NULL DEFAULT 0,
   picked_up_email_sent TINYINT(1) NOT NULL DEFAULT 0,
+  send_live_updates TINYINT(1) NOT NULL DEFAULT 1,
+  scheduled_at DATETIME DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
