@@ -2,20 +2,33 @@ require("dotenv").config()
 const express = require("express")
 const cors = require("cors")
 const path = require("path")
+const fs = require("fs")
 const authRoutes = require("./auth")
 const menuRoutes = require("./routes/menu")
 const ordersRoutes = require("./routes/orders")
 const db = require("./db")
 
 const app = express()
-const PORT = 8080
+const PORT = process.env.PORT || 8080
+const isProduction = process.env.NODE_ENV === "production"
+const distPath = path.join(__dirname, "dist")
+const staticRoot = isProduction && fs.existsSync(distPath) ? distPath : __dirname
+
+// ── Security headers (help prevent XSS, clickjacking, MIME sniffing) ──
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff")
+  res.setHeader("X-Frame-Options", "SAMEORIGIN")
+  res.setHeader("X-XSS-Protection", "1; mode=block")
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin")
+  next()
+})
 
 // ── Middleware ──────────────────────────────
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: "512kb" }))
 
-// ── Serve HTML files from the same folder ──
-app.use(express.static(path.join(__dirname)))
+// ── Serve static files (from dist/ in production if built, else project root) ──
+app.use(express.static(staticRoot))
 
 // ── API Routes ──────────────────────────────
 app.use("/api/auth", authRoutes)
@@ -24,7 +37,7 @@ app.use("/api/orders", ordersRoutes)
 
 // ── Home Route ──────────────────────────────
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"))
+  res.sendFile(path.join(staticRoot, "index.html"))
 })
 
 // ── Start Server ────────────────────────────

@@ -124,6 +124,32 @@ If SMTP vars are not set, the app runs normally but skips sending emails (you'll
 
 ---
 
+## Production build (obfuscation & security)
+
+To make it harder for others to copy your client-side code and to add basic security headers:
+
+1. **Build** (obfuscates all JS in `js/` and copies HTML and assets to `dist/`):
+   ```bash
+   npm run build
+   ```
+
+2. **Run in production** (serves from `dist/` and sends security headers):
+   ```bash
+   set NODE_ENV=production
+   npm start
+   ```
+   On Mac/Linux: `NODE_ENV=production npm start`
+
+**Important:** Code that runs in the browser cannot be fully hidden—the browser must download and run it. Obfuscation makes it much harder to read and reuse; it is not unbreakable. Real protection for your business logic and data comes from:
+- Keeping secrets (API keys, DB passwords) only on the server and in `.env` (never in client JS)
+- Validating and authorizing all actions on the server (your API already does this)
+- Using HTTPS in production
+- Keeping dependencies updated (`npm audit`)
+
+The server sends security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy) to reduce XSS and clickjacking risks.
+
+---
+
 ## Logins
 
 | Who    | Email                 | Password  |
