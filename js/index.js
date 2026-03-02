@@ -53,7 +53,8 @@
         role: "guest",
       })
     );
-    window.location.href = "restaurant-pos.html";
+    // Use replace so Back doesn't return to login/register screen.
+    window.location.replace("restaurant-pos.html");
   }
 
   async function handleLogin() {
@@ -73,7 +74,8 @@
         startRedirecting("loginMsg", "Welcome back, " + data.user.name + "! Redirecting");
         setTimeout(() => {
           stopRedirecting();
-          window.location.href = "restaurant-pos.html";
+          // Use replace so Back doesn't return to login/register screen.
+          window.location.replace("restaurant-pos.html");
         }, 1200);
       } else {
         showMsg("loginMsg", "error", data.message);

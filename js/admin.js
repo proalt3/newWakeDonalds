@@ -15,7 +15,7 @@
   if (user.email === "admin@wakedonalds.com" && user.role === "customer") user.role = "admin";
   var canAccessAdmin = user.role === "admin";
   if (!canAccessAdmin) {
-    window.location.href = "restaurant-pos.html";
+    window.location.replace("restaurant-pos.html");
     return;
   }
 
